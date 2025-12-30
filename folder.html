@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorateur de Dossier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .folder-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .folder-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .files-section {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .file-item:hover {
+            background: #e9ecef;
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-path {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .no-files {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 1.1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 Explorateur de Dossier</h1>
+            <p>Sélectionnez un dossier et recherchez vos fichiers facilement</p>
+        </div>
+
+        <div class="content">
+            <div class="upload-section">
+                <button class="folder-btn" onclick="selectFolder()">
+                    📂 Sélectionner un Dossier
+                </button>
+                <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+            </div>
+
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalFiles">0</div>
+                    <div class="stat-label">Fichiers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="visibleFiles">0</div>
+                    <div class="stat-label">Affichés</div>
+                </div>
+            </div>
+
+            <div class="search-section" id="searchSection" style="display: none;">
+                <input type="text" class="search-box" id="searchBox" placeholder="🔍 Rechercher un fichier...">
+            </div>
+
+            <div class="files-section" id="filesSection">
+                <div class="no-files">
+                    Aucun dossier sélectionné. Cliquez sur le bouton ci-dessus pour commencer.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allFiles = [];
+
+        function selectFolder() {
+            document.getElementById('folderInput').click();
+        }
+
+        document.getElementById('folderInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            allFiles = files;
+            
+            document.getElementById('stats').style.display = 'flex';
+            document.getElementById('searchSection').style.display = 'block';
+            document.getElementById('totalFiles').textContent = files.length;
+            
+            displayFiles(files);
+        });
+
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const filtered = allFiles.filter(file => 
+                file.name.toLowerCase().includes(query) || 
+                file.webkitRelativePath.toLowerCase().includes(query)
+            );
+            displayFiles(filtered);
+        });
+
+        function displayFiles(files) {
+            const section = document.getElementById('filesSection');
+            document.getElementById('visibleFiles').textContent = files.length;
+            
+            if (files.length === 0) {
+                section.innerHTML = '<div class="no-files">Aucun fichier trouvé.</div>';
+                return;
+            }
+
+            section.innerHTML = files.map(file => {
+                const icon = getFileIcon(file.name);
+                return `
+                    <div class="file-item">
+                        <div class="file-icon">${icon}</div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-path">${file.webkitRelativePath}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'xls': '📊', 'xlsx': '📊',
+                'ppt': '📽️', 'pptx': '📽️',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+                'mp4': '🎬', 'avi': '🎬', 'mov': '🎬',
+                'mp3': '🎵', 'wav': '🎵',
+                'zip': '📦', 'rar': '📦',
+                'txt': '📃',
+                'html': '🌐', 'css': '🌐', 'js': '🌐',
+                'py': '🐍', 'java': '☕'
+            };
+            return icons[ext] || '📄';
+        }
+    </script>
+</body>
+</html>
